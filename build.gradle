@@ -1,0 +1,88 @@
+/*
+
+# Eclipse settings
+gradle cleanEclipse eclipse
+
+*/
+import org.apache.tools.ant.filters.ReplaceTokens
+
+ext.globalVersion = System.properties['SVN_TAG'] ?: new Date().format('yyyy-MM-dd-HH-mm')
+ext.dockerVersion = System.properties['SVN_TAG'] ?: 'latest'
+ext.dockerTargetPort = System.properties['SVN_TAG'] ? '5000' : '5001'
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'war'
+apply plugin: 'eclipse-wtp'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+	mavenCentral()
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src'
+		}
+		resources {
+			srcDirs = ['cfg']
+		}
+	}
+}
+
+dependencies {
+	// Web
+	providedCompile (group: 'javax.servlet', name: 'javax.servlet-api', version: '3.0.1')
+	providedCompile (group: 'javax.servlet.jsp', name: 'jsp-api', version: '2.2')
+	runtime (group: 'javax.servlet.jsp.jstl', name: 'jstl-api', version: '1.2') {
+		transitive false
+	}
+	runtime (group: 'org.glassfish.web', name: 'jstl-impl', version: '1.2') {
+		transitive false
+	}
+
+	// Apache Commons
+	compile(group: 'org.apache.commons', name: 'commons-lang3', version: '3.4')
+    
+	// Apache CXF
+	compile(group: 'org.apache.cxf', name: 'cxf-rt-transports-http', version: '3.1.9')
+	compile(group: 'org.apache.cxf', name: 'cxf-rt-frontend-jaxrs', version: '3.1.9')
+
+	// logging
+	compile(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21')
+	compile (group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.7')
+	compile (group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.7')
+	compile (group: 'org.apache.logging.log4j', name: 'log4j-jul', version: '2.7')
+	compile (group: 'org.apache.logging.log4j', name: 'log4j-web', version: '2.7')
+
+	// Jackson
+	compile(group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: '2.5.4')
+}
+processResources {
+	filter ReplaceTokens, tokens: [SVN_TAG: project.globalVersion]
+}
+
+/* -------------------------------------------------
+	WAR
+-------------------------------------------------*/
+war {
+	from('WebContent') {
+	}
+	archiveName = project.name + '.war'
+}
+eclipse {
+	wtp {
+		component {
+			contextPath = project.name
+			resource sourcePath: 'WebContent', deployPath: '/'
+		}
+		facet {
+			facet name: 'jst.web', version: '3.0'
+			facet name: 'wst.jsdt.web', version: '1.0'
+		}
+	}
+}
+
+
